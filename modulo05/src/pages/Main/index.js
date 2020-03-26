@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 
-import { FaGithubAlt, FaPlus} from 'react-icons/fa';
-import { Container, Form, SubmitButton } from './styles';
+import { FaGithubAlt, FaPlus, FaSpinner} from 'react-icons/fa';
+import { Container, Form, SubmitButton, List } from './styles';
 
 import api from '../../services/api';
 
@@ -9,6 +9,29 @@ export default class Main extends Component{
 
     state = {
         newRepo: '',
+        repositories: [],
+        loading: false,
+    }
+
+    /* CARREGAR DADOS DO LOCALSTORAGE */
+    componentDidMount(){
+
+        const repositories = localStorage.getItem('repositories');
+
+        if(repositories){
+            this.setState({repositories : JSON.parse(repositories)});
+        }
+
+    }
+
+
+    componentDidUpdate(__, prevState){
+
+        const { repositories } = this.state;
+        if(prevState.repositories !== repositories){
+            localStorage.setItem('repositories', JSON.stringify(repositories))
+        }
+
     }
 
     handleInputChange = e =>{
@@ -17,15 +40,28 @@ export default class Main extends Component{
 
     handleSubmit = async e =>{
         e.preventDefault();
-        const { newRepo } = this.state;
+        this.setState({loading: true});
+        const { newRepo, repositories } = this.state;
         const response = await api.get(`/repos/${newRepo}`);
-        console.log(response.data);
 
+        const data = {
+            name: response.data.full_name,
+        }
+
+        //console.log(response.data);
+
+        this.setState({
+            repositories: [...repositories, data],
+            newRepo: '',
+            loading: false,
+        });
+
+        console.log(this.state.repositories)
 
     }
     render(){
 
-        const { newRepo } = this.state
+        const { newRepo, loading, repositories } = this.state
 
         return(
             <Container>
@@ -40,10 +76,25 @@ export default class Main extends Component{
                         value={newRepo}
                         onChange={this.handleInputChange}
                     />
-                    <SubmitButton>
-                        <FaPlus color="#fff" size={14}/>
+                    <SubmitButton loading={loading}>
+                        {loading ? (
+                            <FaSpinner color="#FFF" size={14}/>
+                        ) : (
+                            <FaPlus color="#fff" size={14}/>
+                        )}
                     </SubmitButton>
                 </Form>
+
+                <List>
+                    {
+                        repositories.map(repository =>(
+                            <li key={repository.name}>
+                                <span>{repository.name}</span>
+                                <a href="">Detalhes</a>
+                            </li>
+                        ))
+                    }
+                </List>
 
             </Container>
         )}
